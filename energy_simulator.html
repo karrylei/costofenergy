@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Classroom Appliance Energy Simulator</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #2c3e50; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background-color: #f4f4f4; }
+    input, select { padding: 5px; margin: 5px; }
+    button { padding: 8px 12px; margin: 5px; cursor: pointer; }
+    .result { margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Appliance Energy & Cost Simulator</h1>
+
+  <button onclick="toggleColumn('kwhCol')">Toggle kWh Column</button>
+  <button onclick="toggleColumn('joulesCol')">Toggle Joules Column</button>
+  <button onclick="toggleColumn('costCol')">Toggle Cost Column</button>
+
+  <table id="applianceTable">
+    <thead>
+      <tr>
+        <th>Appliance</th>
+        <th>Power</th>
+        <th>Usage Time</th>
+        <th class="kwhCol">Monthly Energy (kWh)</th>
+        <th class="joulesCol">Monthly Energy (J)</th>
+        <th class="costCol">Monthly Cost ($)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="result" id="total"></div>
+
+  <script>
+    const appliances = [
+      { name: "Rice cooker", power: 600, unit: "W", time: 0, timeUnit: "hours" },
+      { name: "Lamp", power: 60, unit: "W", time: 0, timeUnit: "hours" },
+      { name: "Fridge", power: 150, unit: "W", time: 0, timeUnit: "hours" },
+      { name: "Kettle", power: 2, unit: "kW", time: 0, timeUnit: "hours" },
+      { name: "TV", power: 200, unit: "W", time: 0, timeUnit: "hours" },
+      { name: "Phone Charger", power: 30, unit: "W", time: 0, timeUnit: "hours" },
+      { name: "Washing Machine", power: 800, unit: "W", time: 0, timeUnit: "hours" },
+      { name: "Air Conditioner", power: 1500, unit: "W", time: 0, timeUnit: "hours" },
+      { name: "Hair Dryer", power: 1.8, unit: "kW", time: 0, timeUnit: "hours" },
+      { name: "Microwave oven", power: 1000, unit: "W", time: 0, timeUnit: "hours" }
+    ];
+
+    const pricePerKWh = 1.5;
+
+    let showCols = { kwhCol: true, joulesCol: false, costCol: true };
+
+    function updateTable() {
+      const tbody = document.querySelector("#applianceTable tbody");
+      tbody.innerHTML = "";
+
+      let totalEnergy = 0;
+      let totalCost = 0;
+      let totalJoules = 0;
+
+      appliances.forEach((app, index) => {
+        const powerKW = (app.unit === "W") ? app.power / 1000 : app.power;
+        const hoursPerDay = (app.timeUnit === "minutes") ? app.time / 60 : app.time;
+
+        const dailyEnergy = powerKW * hoursPerDay;
+        const monthlyEnergy = dailyEnergy * 30;
+        const monthlyCost = monthlyEnergy * pricePerKWh;
+        const monthlyJoules = monthlyEnergy * 3.6e6;
+
+        totalEnergy += monthlyEnergy;
+        totalCost += monthlyCost;
+        totalJoules += monthlyJoules;
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${app.name}</td>
+          <td>${app.power} ${app.unit}</td>
+          <td>
+            <input type="number" id="time_${index}" value="${app.time}" 
+                   oninput="setTime(${index}, this.value)">
+            <select id="unit_${index}" onchange="setUnit(${index}, this.value)">
+              <option value="hours" ${app.timeUnit==="hours"?"selected":""}>hours/day</option>
+              <option value="minutes" ${app.timeUnit==="minutes"?"selected":""}>minutes/day</option>
+            </select>
+          </td>
+          <td class="kwhCol">${monthlyEnergy.toFixed(2)}</td>
+          <td class="joulesCol">${monthlyJoules.toExponential(2)}</td>
+          <td class="costCol">${monthlyCost.toFixed(2)}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      // Totals section
+      document.getElementById("total").innerHTML = `
+        <p>Total Monthly Energy: ${showCols.kwhCol ? totalEnergy.toFixed(2) + " kWh" : "(hidden)"}</p>
+        <p>Total Monthly Energy: ${showCols.joulesCol ? totalJoules.toExponential(2) + " J" : "(hidden)"}</p>
+        <p>Total Monthly Cost: ${showCols.costCol ? "$" + totalCost.toFixed(2) : "(hidden)"}</p>
+      `;
+
+      // Apply column visibility
+      for (const col in showCols) {
+        document.querySelector("th."+col).style.display = showCols[col] ? "" : "none";
+        document.querySelectorAll("."+col).forEach(cell => {
+          cell.style.display = showCols[col] ? "" : "none";
+        });
+      }
+    }
+
+    function setTime(index, value) {
+      appliances[index].time = parseFloat(value) || 0;
+      updateTable();
+    }
+
+    function setUnit(index, value) {
+      appliances[index].timeUnit = value;
+      updateTable();
+    }
+
+    function toggleColumn(col) {
+      showCols[col] = !showCols[col];
+      updateTable();
+    }
+
+    // Initialize
+    updateTable();
+  </script>
+</body>
+</html>
